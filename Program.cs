@@ -26,41 +26,42 @@ DatabaseInitializer.Initialize();
 var port = 5100;
 app.Urls.Add($"http://localhost:{port}");
 
-app.Lifetime.ApplicationStarted.Register(() =>
-{
-    string url = $"http://localhost:{port}/login.html";
-    try
-    {
-        // Thử mở bằng Edge trước (--app mode)
-        Process.Start(new ProcessStartInfo
-        {
-            FileName = "msedge",
-            Arguments = $"--app={url} --window-size=1400,900",
-            UseShellExecute = true
-        });
-    }
-    catch
-    {
-        try
-        {
-            // Nếu không có Edge, thử Chrome
-            Process.Start(new ProcessStartInfo
-            {
-                FileName = "chrome",
-                Arguments = $"--app={url} --window-size=1400,900",
-                UseShellExecute = true
-            });
-        }
-        catch
-        {
-            // Fallback: mở bằng trình duyệt mặc định
-            Process.Start(new ProcessStartInfo
-            {
-                FileName = url,
-                UseShellExecute = true
-            });
-        }
-    }
-});
+// app.Lifetime.ApplicationStarted.Register(() =>
+// {
+//     string url = $"http://localhost:{port}/login.html";
+//     try
+//     {
+//         // Thử mở bằng Edge trước (--app mode)
+//         Process.Start(new ProcessStartInfo
+//         {
+//             FileName = "msedge",
+//             Arguments = $"--app={url} --window-size=1400,900",
+//             UseShellExecute = true
+//         });
+//     }
+//     catch
+//     {
+//         try
+//         {
+//             // Nếu không có Edge, thử Chrome
+//             Process.Start(new ProcessStartInfo
+//             {
+//                 FileName = "chrome",
+//                 Arguments = $"--app={url} --window-size=1400,900",
+//                 UseShellExecute = true
+//             });
+//         }
+//         catch
+//         {
+//             // Fallback: mở bằng trình duyệt mặc định
+//             Process.Start(new ProcessStartInfo
+//             {
+//                 FileName = url,
+//                 UseShellExecute = true
+//             });
+//         }
+//     }
+// });
+
 
 app.Run();

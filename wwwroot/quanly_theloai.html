@@ -1,0 +1,189 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Quản lý Thể loại - Thư viện</title>
+    <link rel="icon" type="image/png" href="img/favicon.png">
+    <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+    <div class="app-layout">
+        <aside class="sidebar">
+            <div class="sidebar-header">
+                <img src="img/logo.png" alt="Logo">
+                <div><h2>THƯ VIỆN</h2><span>Hệ thống quản lý</span></div>
+            </div>
+            <nav class="sidebar-nav">
+                <div class="nav-section-title">Tổng quan</div>
+                <a href="index.html" class="nav-item"><span class="icon">📊</span> Trang chủ</a>
+                <div class="nav-section-title">Quản lý</div>
+                <a href="quanly_sach.html" class="nav-item"><span class="icon">📚</span> Quản lý Sách</a>
+                <a href="quanly_theloai.html" class="nav-item active"><span class="icon">🏷️</span> Quản lý Thể loại</a>
+                <a href="quanly_docgia.html" class="nav-item"><span class="icon">👤</span> Quản lý Độc giả</a>
+                <div class="nav-section-title">Nghiệp vụ</div>
+                <a href="quanly_muontra.html" class="nav-item"><span class="icon">🔄</span> Mượn / Trả sách</a>
+            </nav>
+            <div class="sidebar-footer">
+                <a class="nav-item" onclick="dangXuat()"><span class="icon">🚪</span> Đăng xuất</a>
+            </div>
+        </aside>
+
+        <main class="main-content">
+            <div class="page-header">
+                <div>
+                    <h1>🏷️ Quản lý Thể loại</h1>
+                    <p>Danh mục thể loại sách trong hệ thống</p>
+                </div>
+                <button class="btn btn-primary" onclick="moFormThem()">➕ Thêm thể loại</button>
+            </div>
+
+            <div class="card">
+                <div class="table-wrapper">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Mã thể loại</th>
+                                <th>Tên thể loại</th>
+                                <th>Mô tả</th>
+                                <th>Thao tác</th>
+                            </tr>
+                        </thead>
+                        <tbody id="tbodyTheLoai"></tbody>
+                    </table>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <!-- MODAL -->
+    <div class="modal-overlay" id="modalTheLoai">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3 id="modalTitle">➕ Thêm thể loại</h3>
+                <button class="modal-close" onclick="dongModal()">✕</button>
+            </div>
+            <form onsubmit="return luuTheLoai(event)">
+                <div class="form-group">
+                    <label for="txtMaTheLoai">Mã thể loại</label>
+                    <input type="text" id="txtMaTheLoai" class="form-control" placeholder="VD: TL-006" required>
+                </div>
+                <div class="form-group">
+                    <label for="txtTenTheLoai">Tên thể loại</label>
+                    <input type="text" id="txtTenTheLoai" class="form-control" placeholder="Nhập tên thể loại" required>
+                </div>
+                <div class="form-group">
+                    <label for="txtMoTa">Mô tả</label>
+                    <input type="text" id="txtMoTa" class="form-control" placeholder="Mô tả ngắn gọn">
+                </div>
+                <div class="form-actions">
+                    <button type="button" class="btn btn-outline" onclick="dongModal()">Hủy</button>
+                    <button type="submit" id="btnLuu" class="btn btn-primary">💾 Lưu</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <div class="toast-container" id="toastContainer"></div>
+
+    <script>
+        const API = 'http://localhost:5100/api';
+        let editingMa = null;
+
+        if (!localStorage.getItem('user')) window.location.href = 'login.html';
+        function dangXuat() { localStorage.removeItem('user'); window.location.href = 'login.html'; }
+
+        function showToast(msg, type='success') {
+            const c = document.getElementById('toastContainer');
+            const t = document.createElement('div');
+            t.className = `toast toast-${type}`;
+            t.textContent = msg;
+            c.appendChild(t);
+            setTimeout(() => t.remove(), 3000);
+        }
+
+        async function loadData() {
+            try {
+                const data = await fetch(`${API}/theloai`).then(r => r.json());
+                const tbody = document.getElementById('tbodyTheLoai');
+                tbody.innerHTML = '';
+                if (data.length === 0) {
+                    tbody.innerHTML = '<tr><td colspan="4" style="text-align:center;color:var(--text-muted);padding:32px;">Không có dữ liệu</td></tr>';
+                    return;
+                }
+                data.forEach(tl => {
+                    tbody.innerHTML += `<tr>
+                        <td><strong>${tl.maTheLoai}</strong></td>
+                        <td>${tl.tenTheLoai}</td>
+                        <td>${tl.moTa || ''}</td>
+                        <td>
+                            <div class="action-btns">
+                                <button class="btn btn-warning btn-sm" onclick="suaTheLoai('${tl.maTheLoai}','${tl.tenTheLoai}','${tl.moTa||''}')">✏️</button>
+                                <button class="btn btn-danger btn-sm" onclick="xoaTheLoai('${tl.maTheLoai}')">🗑️</button>
+                            </div>
+                        </td>
+                    </tr>`;
+                });
+            } catch(e) { console.error(e); }
+        }
+
+        function moFormThem() {
+            editingMa = null;
+            document.getElementById('modalTitle').textContent = '➕ Thêm thể loại';
+            document.getElementById('txtMaTheLoai').value = '';
+            document.getElementById('txtMaTheLoai').disabled = false;
+            document.getElementById('txtTenTheLoai').value = '';
+            document.getElementById('txtMoTa').value = '';
+            document.getElementById('modalTheLoai').classList.add('active');
+        }
+
+        function suaTheLoai(ma, ten, mota) {
+            editingMa = ma;
+            document.getElementById('modalTitle').textContent = '✏️ Sửa thể loại';
+            document.getElementById('txtMaTheLoai').value = ma;
+            document.getElementById('txtMaTheLoai').disabled = true;
+            document.getElementById('txtTenTheLoai').value = ten;
+            document.getElementById('txtMoTa').value = mota;
+            document.getElementById('modalTheLoai').classList.add('active');
+        }
+
+        async function luuTheLoai(e) {
+            e.preventDefault();
+            const body = {
+                maTheLoai: document.getElementById('txtMaTheLoai').value,
+                tenTheLoai: document.getElementById('txtTenTheLoai').value,
+                moTa: document.getElementById('txtMoTa').value
+            };
+            try {
+                let res;
+                if (editingMa) {
+                    res = await fetch(`${API}/theloai/${editingMa}`, {
+                        method:'PUT', headers:{'Content-Type':'application/json'}, body:JSON.stringify(body)
+                    });
+                } else {
+                    res = await fetch(`${API}/theloai`, {
+                        method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify(body)
+                    });
+                }
+                const data = await res.json();
+                showToast(data.message, data.success?'success':'error');
+                if (data.success) { dongModal(); loadData(); }
+            } catch(e) { showToast('Lỗi kết nối!','error'); }
+        }
+
+        async function xoaTheLoai(ma) {
+            if (!confirm('Bạn có chắc muốn xóa thể loại này?')) return;
+            try {
+                const res = await fetch(`${API}/theloai/${ma}`, { method:'DELETE' });
+                const data = await res.json();
+                showToast(data.message, data.success?'success':'error');
+                if (data.success) loadData();
+            } catch(e) { showToast('Lỗi kết nối!','error'); }
+        }
+
+        function dongModal() { document.getElementById('modalTheLoai').classList.remove('active'); }
+
+        loadData();
+    </script>
+</body>
+</html>

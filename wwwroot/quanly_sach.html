@@ -1,0 +1,279 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Quản lý Sách - Thư viện</title>
+    <link rel="icon" type="image/png" href="img/favicon.png">
+    <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+    <div class="app-layout">
+        <!-- SIDEBAR -->
+        <aside class="sidebar">
+            <div class="sidebar-header">
+                <img src="img/logo.png" alt="Logo">
+                <div><h2>THƯ VIỆN</h2><span>Hệ thống quản lý</span></div>
+            </div>
+            <nav class="sidebar-nav">
+                <div class="nav-section-title">Tổng quan</div>
+                <a href="index.html" class="nav-item"><span class="icon">📊</span> Trang chủ</a>
+                <div class="nav-section-title">Quản lý</div>
+                <a href="quanly_sach.html" class="nav-item active"><span class="icon">📚</span> Quản lý Sách</a>
+                <a href="quanly_theloai.html" class="nav-item"><span class="icon">🏷️</span> Quản lý Thể loại</a>
+                <a href="quanly_docgia.html" class="nav-item"><span class="icon">👤</span> Quản lý Độc giả</a>
+                <div class="nav-section-title">Nghiệp vụ</div>
+                <a href="quanly_muontra.html" class="nav-item"><span class="icon">🔄</span> Mượn / Trả sách</a>
+            </nav>
+            <div class="sidebar-footer">
+                <a class="nav-item" onclick="dangXuat()"><span class="icon">🚪</span> Đăng xuất</a>
+            </div>
+        </aside>
+
+        <!-- MAIN -->
+        <main class="main-content">
+            <div class="page-header">
+                <div>
+                    <h1>📚 Quản lý Sách</h1>
+                    <p>Quản lý toàn bộ kho sách trong hệ thống thư viện</p>
+                </div>
+                <button class="btn btn-primary" onclick="moFormThem()">➕ Thêm sách mới</button>
+            </div>
+
+            <!-- Toolbar -->
+            <div class="toolbar mb-4">
+                <div class="search-box">
+                    <input type="text" id="txtTimKiem" placeholder="Tìm kiếm theo tên sách, tác giả, mã sách..." oninput="timKiem()">
+                </div>
+            </div>
+
+            <!-- Table -->
+            <div class="card">
+                <div class="table-wrapper">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Mã sách</th>
+                                <th>Tên sách</th>
+                                <th>Tác giả</th>
+                                <th>Thể loại</th>
+                                <th>NXB</th>
+                                <th>Năm XB</th>
+                                <th>SL Tổng</th>
+                                <th>SL Hiện tại</th>
+                                <th>Thao tác</th>
+                            </tr>
+                        </thead>
+                        <tbody id="tbodySach"></tbody>
+                    </table>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <!-- MODAL THÊM/SỬA SÁCH -->
+    <div class="modal-overlay" id="modalSach">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3 id="modalSachTitle">➕ Thêm sách mới</h3>
+                <button class="modal-close" onclick="dongModal()">✕</button>
+            </div>
+            <form onsubmit="return luuSach(event)">
+                <div class="form-group">
+                    <label for="txtMaSach">Mã sách</label>
+                    <input type="text" id="txtMaSach" class="form-control" placeholder="Tự động tạo" disabled>
+                </div>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="txtTenSach">Tên sách</label>
+                        <input type="text" id="txtTenSach" class="form-control" placeholder="Nhập tên sách" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="txtTacGia">Tác giả</label>
+                        <input type="text" id="txtTacGia" class="form-control" placeholder="Nhập tên tác giả" required>
+                    </div>
+                </div>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="cboTheLoai">Thể loại</label>
+                        <select id="cboTheLoai" class="form-control" required></select>
+                    </div>
+                    <div class="form-group">
+                        <label for="txtNhaXuatBan">Nhà xuất bản</label>
+                        <input type="text" id="txtNhaXuatBan" class="form-control" placeholder="Nhập NXB">
+                    </div>
+                </div>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="txtNamXB">Năm xuất bản</label>
+                        <input type="number" id="txtNamXB" class="form-control" placeholder="VD: 2024" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="txtSoLuong">Số lượng</label>
+                        <input type="number" id="txtSoLuong" class="form-control" placeholder="Nhập số lượng" min="1" required>
+                    </div>
+                </div>
+                <div class="form-actions">
+                    <button type="button" class="btn btn-outline" onclick="dongModal()">Hủy</button>
+                    <button type="submit" id="btnLuuSach" class="btn btn-primary">💾 Lưu sách</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <div class="toast-container" id="toastContainer"></div>
+
+    <script>
+        const API = 'http://localhost:5100/api';
+        let editingMaSach = null;
+
+        if (!localStorage.getItem('user')) window.location.href = 'login.html';
+        function dangXuat() { localStorage.removeItem('user'); window.location.href = 'login.html'; }
+
+        function showToast(msg, type='success') {
+            const c = document.getElementById('toastContainer');
+            const t = document.createElement('div');
+            t.className = `toast toast-${type}`;
+            t.textContent = msg;
+            c.appendChild(t);
+            setTimeout(() => t.remove(), 3000);
+        }
+
+        // Load danh sách sách
+        async function loadSach() {
+            try {
+                const data = await fetch(`${API}/sach`).then(r => r.json());
+                renderTable(data);
+            } catch(e) { console.error(e); }
+        }
+
+        function renderTable(data) {
+            const tbody = document.getElementById('tbodySach');
+            tbody.innerHTML = '';
+            if (data.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="9" style="text-align:center;color:var(--text-muted);padding:32px;">Không có dữ liệu</td></tr>';
+                return;
+            }
+            data.forEach(s => {
+                tbody.innerHTML += `<tr>
+                    <td><strong>${s.maSach}</strong></td>
+                    <td>${s.tenSach}</td>
+                    <td>${s.tacGia}</td>
+                    <td><span class="badge badge-info">${s.tenTheLoai}</span></td>
+                    <td>${s.nhaXuatBan}</td>
+                    <td>${s.namXuatBan}</td>
+                    <td>${s.soLuongTong}</td>
+                    <td><strong style="color:${s.soLuongHienTai>0?'var(--success)':'var(--danger)'}">${s.soLuongHienTai}</strong></td>
+                    <td>
+                        <div class="action-btns">
+                            <button class="btn btn-warning btn-sm" onclick="suaSach('${s.maSach}')">✏️</button>
+                            <button class="btn btn-danger btn-sm" onclick="xoaSach('${s.maSach}')">🗑️</button>
+                        </div>
+                    </td>
+                </tr>`;
+            });
+        }
+
+        // Load thể loại cho dropdown
+        async function loadTheLoai() {
+            try {
+                const data = await fetch(`${API}/theloai`).then(r => r.json());
+                const sel = document.getElementById('cboTheLoai');
+                sel.innerHTML = '<option value="">-- Chọn thể loại --</option>';
+                data.forEach(tl => {
+                    sel.innerHTML += `<option value="${tl.maTheLoai}">${tl.tenTheLoai}</option>`;
+                });
+            } catch(e) { console.error(e); }
+        }
+
+        // Tìm kiếm
+        async function timKiem() {
+            const q = document.getElementById('txtTimKiem').value.trim();
+            if (q.length === 0) { loadSach(); return; }
+            try {
+                const data = await fetch(`${API}/sach/search?q=${encodeURIComponent(q)}`).then(r => r.json());
+                renderTable(data);
+            } catch(e) { console.error(e); }
+        }
+
+        // Mở form thêm
+        function moFormThem() {
+            editingMaSach = null;
+            document.getElementById('modalSachTitle').textContent = '➕ Thêm sách mới';
+            document.getElementById('txtMaSach').value = '';
+            document.getElementById('txtTenSach').value = '';
+            document.getElementById('txtTacGia').value = '';
+            document.getElementById('cboTheLoai').value = '';
+            document.getElementById('txtNhaXuatBan').value = '';
+            document.getElementById('txtNamXB').value = '';
+            document.getElementById('txtSoLuong').value = '';
+            document.getElementById('modalSach').classList.add('active');
+        }
+
+        // Sửa sách
+        async function suaSach(ma) {
+            try {
+                const data = await fetch(`${API}/sach`).then(r => r.json());
+                const s = data.find(x => x.maSach === ma);
+                if (!s) return;
+                editingMaSach = ma;
+                document.getElementById('modalSachTitle').textContent = '✏️ Sửa thông tin sách';
+                document.getElementById('txtMaSach').value = s.maSach;
+                document.getElementById('txtTenSach').value = s.tenSach;
+                document.getElementById('txtTacGia').value = s.tacGia;
+                document.getElementById('cboTheLoai').value = s.maTheLoai;
+                document.getElementById('txtNhaXuatBan').value = s.nhaXuatBan;
+                document.getElementById('txtNamXB').value = s.namXuatBan;
+                document.getElementById('txtSoLuong').value = s.soLuongTong;
+                document.getElementById('modalSach').classList.add('active');
+            } catch(e) { console.error(e); }
+        }
+
+        // Lưu sách
+        async function luuSach(e) {
+            e.preventDefault();
+            const body = {
+                tenSach: document.getElementById('txtTenSach').value,
+                tacGia: document.getElementById('txtTacGia').value,
+                maTheLoai: document.getElementById('cboTheLoai').value,
+                nhaXuatBan: document.getElementById('txtNhaXuatBan').value,
+                namXuatBan: parseInt(document.getElementById('txtNamXB').value),
+                soLuongTong: parseInt(document.getElementById('txtSoLuong').value)
+            };
+
+            try {
+                let res;
+                if (editingMaSach) {
+                    res = await fetch(`${API}/sach/${editingMaSach}`, {
+                        method: 'PUT', headers: {'Content-Type':'application/json'}, body: JSON.stringify(body)
+                    });
+                } else {
+                    res = await fetch(`${API}/sach`, {
+                        method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify(body)
+                    });
+                }
+                const data = await res.json();
+                showToast(data.message, data.success ? 'success' : 'error');
+                if (data.success) { dongModal(); loadSach(); }
+            } catch(e) { showToast('Lỗi kết nối!', 'error'); }
+        }
+
+        // Xóa mềm sách
+        async function xoaSach(ma) {
+            if (!confirm('Bạn có chắc muốn ngừng lưu hành sách này?')) return;
+            try {
+                const res = await fetch(`${API}/sach/${ma}`, { method: 'DELETE' });
+                const data = await res.json();
+                showToast(data.message, data.success ? 'success' : 'error');
+                if (data.success) loadSach();
+            } catch(e) { showToast('Lỗi kết nối!', 'error'); }
+        }
+
+        function dongModal() { document.getElementById('modalSach').classList.remove('active'); }
+
+        // Init
+        loadTheLoai();
+        loadSach();
+    </script>
+</body>
+</html>

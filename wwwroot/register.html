@@ -1,0 +1,95 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="Đăng ký tài khoản - Hệ thống Quản lý Thư viện">
+    <title>Đăng ký - Quản lý Thư viện</title>
+    <link rel="icon" type="image/png" href="img/favicon.png">
+    <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+    <div class="auth-container">
+        <div class="auth-card">
+            <div class="auth-logo">
+                <img src="img/logo.png" alt="Logo Thư viện">
+                <h1>ĐĂNG KÝ TÀI KHOẢN</h1>
+                <p>Tạo tài khoản nhân viên mới</p>
+            </div>
+
+            <form id="formRegister" onsubmit="return dangKy(event)">
+                <div class="form-group">
+                    <label for="txtRegName">Họ và tên</label>
+                    <input type="text" id="txtRegName" class="form-control" placeholder="Nhập họ tên đầy đủ" required>
+                </div>
+
+                <div class="form-group">
+                    <label for="txtRegPhone">Số điện thoại</label>
+                    <input type="tel" id="txtRegPhone" class="form-control" placeholder="Nhập số điện thoại">
+                </div>
+
+                <div class="form-group">
+                    <label for="txtRegUser">Tên đăng nhập</label>
+                    <input type="text" id="txtRegUser" class="form-control" placeholder="Chọn tên đăng nhập" required>
+                </div>
+
+                <div class="form-group">
+                    <label for="txtRegPass">Mật khẩu</label>
+                    <input type="password" id="txtRegPass" class="form-control" placeholder="Tạo mật khẩu" required>
+                </div>
+
+                <button type="submit" id="btnRegister" class="btn btn-primary btn-block" style="margin-top: 8px;">
+                    ✨ Đăng ký
+                </button>
+            </form>
+
+            <div class="auth-link">
+                Đã có tài khoản? <a href="login.html">Đăng nhập</a>
+            </div>
+        </div>
+    </div>
+
+    <div class="toast-container" id="toastContainer"></div>
+
+    <script>
+        const API = 'http://localhost:5100/api';
+
+        function showToast(message, type = 'success') {
+            const container = document.getElementById('toastContainer');
+            const toast = document.createElement('div');
+            toast.className = `toast toast-${type}`;
+            toast.textContent = message;
+            container.appendChild(toast);
+            setTimeout(() => toast.remove(), 3000);
+        }
+
+        async function dangKy(e) {
+            e.preventDefault();
+            const body = {
+                hoTen: document.getElementById('txtRegName').value,
+                soDienThoai: document.getElementById('txtRegPhone').value,
+                tenDangNhap: document.getElementById('txtRegUser').value,
+                matKhau: document.getElementById('txtRegPass').value
+            };
+
+            try {
+                const res = await fetch(`${API}/auth/register`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(body)
+                });
+                const data = await res.json();
+
+                if (data.success) {
+                    showToast(data.message);
+                    setTimeout(() => window.location.href = 'login.html', 1500);
+                } else {
+                    showToast(data.message, 'error');
+                }
+            } catch (err) {
+                showToast('Lỗi kết nối server!', 'error');
+            }
+        }
+    </script>
+</body>
+</html>

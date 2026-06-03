@@ -1,0 +1,82 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="Đăng nhập - Hệ thống Quản lý Thư viện">
+    <title>Đăng nhập - Quản lý Thư viện</title>
+    <link rel="icon" type="image/png" href="img/favicon.png">
+    <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+    <div class="auth-container">
+        <div class="auth-card">
+            <div class="auth-logo">
+                <img src="img/logo.png" alt="Logo Thư viện">
+                <h1>HỆ THỐNG THƯ VIỆN</h1>
+                <p>Quản lý Thư viện Thông minh</p>
+            </div>
+
+            <form id="formLogin" onsubmit="return dangNhap(event)">
+                <div class="form-group">
+                    <label for="txtUsername">Tên đăng nhập</label>
+                    <input type="text" id="txtUsername" class="form-control" placeholder="Nhập tên đăng nhập" required>
+                </div>
+
+                <div class="form-group">
+                    <label for="txtPassword">Mật khẩu</label>
+                    <input type="password" id="txtPassword" class="form-control" placeholder="Nhập mật khẩu" required>
+                </div>
+
+                <button type="submit" id="btnSubmit" class="btn btn-primary btn-block" style="margin-top: 8px;">
+                    🔐 Đăng nhập
+                </button>
+            </form>
+
+            <div class="auth-link">
+                Chưa có tài khoản? <a href="register.html">Đăng ký ngay</a>
+            </div>
+        </div>
+    </div>
+
+    <div class="toast-container" id="toastContainer"></div>
+
+    <script>
+        const API = 'http://localhost:5100/api';
+
+        function showToast(message, type = 'success') {
+            const container = document.getElementById('toastContainer');
+            const toast = document.createElement('div');
+            toast.className = `toast toast-${type}`;
+            toast.textContent = message;
+            container.appendChild(toast);
+            setTimeout(() => toast.remove(), 3000);
+        }
+
+        async function dangNhap(e) {
+            e.preventDefault();
+            const tenDangNhap = document.getElementById('txtUsername').value;
+            const matKhau = document.getElementById('txtPassword').value;
+
+            try {
+                const res = await fetch(`${API}/auth/login`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ tenDangNhap, matKhau })
+                });
+                const data = await res.json();
+
+                if (data.success) {
+                    localStorage.setItem('user', JSON.stringify(data));
+                    showToast('Đăng nhập thành công!');
+                    setTimeout(() => window.location.href = 'index.html', 800);
+                } else {
+                    showToast(data.message, 'error');
+                }
+            } catch (err) {
+                showToast('Lỗi kết nối server!', 'error');
+            }
+        }
+    </script>
+</body>
+</html>

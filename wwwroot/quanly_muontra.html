@@ -1,0 +1,334 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Mượn / Trả sách - Thư viện</title>
+    <link rel="icon" type="image/png" href="img/favicon.png">
+    <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+    <div class="app-layout">
+        <aside class="sidebar">
+            <div class="sidebar-header">
+                <img src="img/logo.png" alt="Logo">
+                <div><h2>THƯ VIỆN</h2><span>Hệ thống quản lý</span></div>
+            </div>
+            <nav class="sidebar-nav">
+                <div class="nav-section-title">Tổng quan</div>
+                <a href="index.html" class="nav-item"><span class="icon">📊</span> Trang chủ</a>
+                <div class="nav-section-title">Quản lý</div>
+                <a href="quanly_sach.html" class="nav-item"><span class="icon">📚</span> Quản lý Sách</a>
+                <a href="quanly_theloai.html" class="nav-item"><span class="icon">🏷️</span> Quản lý Thể loại</a>
+                <a href="quanly_docgia.html" class="nav-item"><span class="icon">👤</span> Quản lý Độc giả</a>
+                <div class="nav-section-title">Nghiệp vụ</div>
+                <a href="quanly_muontra.html" class="nav-item active"><span class="icon">🔄</span> Mượn / Trả sách</a>
+            </nav>
+            <div class="sidebar-footer">
+                <a class="nav-item" onclick="dangXuat()"><span class="icon">🚪</span> Đăng xuất</a>
+            </div>
+        </aside>
+
+        <main class="main-content">
+            <div class="page-header">
+                <div>
+                    <h1>🔄 Quản lý Mượn / Trả sách</h1>
+                    <p>Lập phiếu mượn và xử lý trả sách</p>
+                </div>
+                <button class="btn btn-primary" onclick="moFormMuon()">➕ Lập phiếu mượn</button>
+            </div>
+
+            <!-- Danh sách phiếu mượn -->
+            <div class="card mb-4">
+                <div class="card-header">
+                    <h3>📋 Danh sách Phiếu mượn</h3>
+                </div>
+                <div class="table-wrapper">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Mã phiếu</th>
+                                <th>Mã ĐG</th>
+                                <th>Tên độc giả</th>
+                                <th>Ngày mượn</th>
+                                <th>Trạng thái</th>
+                                <th>Thao tác</th>
+                            </tr>
+                        </thead>
+                        <tbody id="tbodyPhieu"></tbody>
+                    </table>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <!-- MODAL LẬP PHIẾU MƯỢN -->
+    <div class="modal-overlay" id="modalMuon">
+        <div class="modal-content" style="max-width:640px;">
+            <div class="modal-header">
+                <h3>➕ Lập phiếu mượn mới</h3>
+                <button class="modal-close" onclick="dongModalMuon()">✕</button>
+            </div>
+            <form onsubmit="return lapPhieu(event)">
+                <div class="form-group">
+                    <label for="txtMaPhieu">Mã phiếu</label>
+                    <input type="text" id="txtMaPhieu" class="form-control" placeholder="Tự động tạo" disabled>
+                </div>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="cboDocGia">Chọn Độc giả</label>
+                        <select id="cboDocGia" class="form-control" required></select>
+                    </div>
+                    <div class="form-group">
+                        <label for="txtNgayMuon">Ngày mượn</label>
+                        <input type="text" id="txtNgayMuon" class="form-control" disabled>
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label for="cboSach">Chọn sách để mượn</label>
+                    <div style="display:flex;gap:8px;">
+                        <select id="cboSach" class="form-control" style="flex:1;"></select>
+                        <button type="button" class="btn btn-success btn-sm" onclick="themSachVaoPhieu()">+ Thêm</button>
+                    </div>
+                </div>
+
+                <!-- Danh sách sách đã chọn -->
+                <div class="selected-books" id="selectedBooks">
+                    <label style="font-size:0.8rem;font-weight:600;color:var(--text-secondary);text-transform:uppercase;letter-spacing:0.5px;">
+                        Sách đã chọn mượn:
+                    </label>
+                    <div id="listSachChon"></div>
+                </div>
+
+                <div class="form-actions">
+                    <button type="button" class="btn btn-outline" onclick="dongModalMuon()">Hủy</button>
+                    <button type="submit" id="btnLapPhieu" class="btn btn-primary">📋 Lập phiếu</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- MODAL CHI TIẾT PHIẾU (TRẢ SÁCH) -->
+    <div class="modal-overlay" id="modalChiTiet">
+        <div class="modal-content" style="max-width:700px;">
+            <div class="modal-header">
+                <h3 id="modalChiTietTitle">📋 Chi tiết phiếu mượn</h3>
+                <button class="modal-close" onclick="dongModalChiTiet()">✕</button>
+            </div>
+            <div class="table-wrapper">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Mã sách</th>
+                            <th>Tên sách</th>
+                            <th>Hẹn trả</th>
+                            <th>Ngày trả</th>
+                            <th>Phạt</th>
+                            <th>Trạng thái</th>
+                            <th>Thao tác</th>
+                        </tr>
+                    </thead>
+                    <tbody id="tbodyChiTiet"></tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <div class="toast-container" id="toastContainer"></div>
+
+    <script>
+        const API = 'http://localhost:5100/api';
+        let sachDaChon = [];
+
+        if (!localStorage.getItem('user')) window.location.href = 'login.html';
+        function dangXuat() { localStorage.removeItem('user'); window.location.href = 'login.html'; }
+
+        function showToast(msg, type='success') {
+            const c = document.getElementById('toastContainer');
+            const t = document.createElement('div');
+            t.className = `toast toast-${type}`;
+            t.textContent = msg;
+            c.appendChild(t);
+            setTimeout(() => t.remove(), 3000);
+        }
+
+        // Load phiếu mượn
+        async function loadPhieu() {
+            try {
+                const data = await fetch(`${API}/muontra`).then(r => r.json());
+                const tbody = document.getElementById('tbodyPhieu');
+                tbody.innerHTML = '';
+                if (data.length === 0) {
+                    tbody.innerHTML = '<tr><td colspan="6" style="text-align:center;color:var(--text-muted);padding:32px;">Chưa có phiếu mượn nào</td></tr>';
+                    return;
+                }
+                data.forEach(p => {
+                    const badge = p.trangThaiPhieu === 'Hoàn tất'
+                        ? '<span class="badge badge-success">Hoàn tất</span>'
+                        : '<span class="badge badge-warning">Đang mượn</span>';
+                    tbody.innerHTML += `<tr>
+                        <td><strong>${p.maPhieu}</strong></td>
+                        <td>${p.maDG}</td>
+                        <td>${p.tenDG}</td>
+                        <td>${p.ngayMuon}</td>
+                        <td>${badge}</td>
+                        <td>
+                            <button class="btn btn-outline btn-sm" onclick="xemChiTiet('${p.maPhieu}')">👁️ Chi tiết</button>
+                        </td>
+                    </tr>`;
+                });
+            } catch(e) { console.error(e); }
+        }
+
+        // Load dropdown độc giả
+        async function loadDocGia() {
+            try {
+                const data = await fetch(`${API}/docgia`).then(r => r.json());
+                const sel = document.getElementById('cboDocGia');
+                sel.innerHTML = '<option value="">-- Chọn độc giả --</option>';
+                data.filter(d => d.trangThai === 'Hoạt động').forEach(dg => {
+                    sel.innerHTML += `<option value="${dg.maDG}">${dg.maDG} - ${dg.tenDG}</option>`;
+                });
+            } catch(e) { console.error(e); }
+        }
+
+        // Load dropdown sách (chỉ sách còn)
+        async function loadSach() {
+            try {
+                const data = await fetch(`${API}/sach`).then(r => r.json());
+                const sel = document.getElementById('cboSach');
+                sel.innerHTML = '<option value="">-- Chọn sách --</option>';
+                data.filter(s => s.soLuongHienTai > 0).forEach(s => {
+                    sel.innerHTML += `<option value="${s.maSach}" data-ten="${s.tenSach}">${s.maSach} - ${s.tenSach} (Còn: ${s.soLuongHienTai})</option>`;
+                });
+            } catch(e) { console.error(e); }
+        }
+
+        // Mở form mượn
+        function moFormMuon() {
+            sachDaChon = [];
+            document.getElementById('txtNgayMuon').value = new Date().toISOString().split('T')[0];
+            document.getElementById('cboDocGia').value = '';
+            document.getElementById('cboSach').value = '';
+            renderSachDaChon();
+            document.getElementById('modalMuon').classList.add('active');
+        }
+
+        // Thêm sách vào danh sách mượn
+        function themSachVaoPhieu() {
+            const sel = document.getElementById('cboSach');
+            const ma = sel.value;
+            if (!ma) { showToast('Vui lòng chọn sách!','error'); return; }
+            if (sachDaChon.find(s => s.ma === ma)) { showToast('Sách đã có trong danh sách!','error'); return; }
+            const ten = sel.options[sel.selectedIndex].getAttribute('data-ten');
+            sachDaChon.push({ ma, ten });
+            renderSachDaChon();
+            sel.value = '';
+        }
+
+        function renderSachDaChon() {
+            const div = document.getElementById('listSachChon');
+            div.innerHTML = '';
+            if (sachDaChon.length === 0) {
+                div.innerHTML = '<p style="color:var(--text-muted);font-size:0.85rem;padding:8px 0;">Chưa chọn sách nào</p>';
+                return;
+            }
+            sachDaChon.forEach((s, i) => {
+                div.innerHTML += `<div class="selected-book-item">
+                    <span>📖 ${s.ma} - ${s.ten}</span>
+                    <button class="remove-btn" onclick="boSach(${i})">✕</button>
+                </div>`;
+            });
+        }
+
+        function boSach(i) {
+            sachDaChon.splice(i, 1);
+            renderSachDaChon();
+        }
+
+        // Lập phiếu mượn
+        async function lapPhieu(e) {
+            e.preventDefault();
+            const maDG = document.getElementById('cboDocGia').value;
+            if (!maDG) { showToast('Vui lòng chọn độc giả!','error'); return; }
+            if (sachDaChon.length === 0) { showToast('Vui lòng chọn ít nhất 1 cuốn sách!','error'); return; }
+
+            try {
+                const res = await fetch(`${API}/muontra`, {
+                    method:'POST',
+                    headers:{'Content-Type':'application/json'},
+                    body:JSON.stringify({
+                        maDG: maDG,
+                        danhSachSach: sachDaChon.map(s => s.ma)
+                    })
+                });
+                const data = await res.json();
+                showToast(data.message, data.success?'success':'error');
+                if (data.success) {
+                    dongModalMuon();
+                    loadPhieu();
+                    loadSach(); // Refresh lại số lượng
+                }
+            } catch(e) { showToast('Lỗi kết nối!','error'); }
+        }
+
+        // Xem chi tiết + Trả sách
+        async function xemChiTiet(maPhieu) {
+            try {
+                const data = await fetch(`${API}/muontra/${maPhieu}/chitiet`).then(r => r.json());
+                document.getElementById('modalChiTietTitle').textContent = `📋 Chi tiết: ${maPhieu}`;
+                const tbody = document.getElementById('tbodyChiTiet');
+                tbody.innerHTML = '';
+                data.forEach(ct => {
+                    const daTra = ct.tinhTrangSach === 'Đã trả';
+                    const badge = daTra
+                        ? '<span class="badge badge-success">Đã trả</span>'
+                        : '<span class="badge badge-warning">Đang mượn</span>';
+                    const phat = ct.tienPhat > 0 ? `${ct.tienPhat.toLocaleString()}đ` : '0đ';
+                    const btnTra = daTra ? '--' :
+                        `<button class="btn btn-success btn-sm" onclick="traSach('${maPhieu}','${ct.maSach}')">📥 Trả</button>`;
+                    tbody.innerHTML += `<tr>
+                        <td><strong>${ct.maSach}</strong></td>
+                        <td>${ct.tenSach}</td>
+                        <td>${ct.ngayHenTra}</td>
+                        <td>${ct.ngayTraThucTe || '--'}</td>
+                        <td style="color:${ct.tienPhat>0?'var(--danger)':'var(--text-muted)'}">${phat}</td>
+                        <td>${badge}</td>
+                        <td>${btnTra}</td>
+                    </tr>`;
+                });
+                document.getElementById('modalChiTiet').classList.add('active');
+            } catch(e) { console.error(e); }
+        }
+
+        // Trả sách
+        async function traSach(maPhieu, maSach) {
+            if (!confirm('Xác nhận trả sách?')) return;
+            try {
+                const res = await fetch(`${API}/muontra/trasach`, {
+                    method:'POST',
+                    headers:{'Content-Type':'application/json'},
+                    body:JSON.stringify({ maPhieu, maSach })
+                });
+                const data = await res.json();
+                let msg = data.message;
+                if (data.tienPhat > 0) msg += ` Tiền phạt: ${data.tienPhat.toLocaleString()}đ`;
+                showToast(msg, data.success?'success':'error');
+                if (data.success) {
+                    xemChiTiet(maPhieu); // Refresh chi tiết
+                    loadPhieu(); // Refresh danh sách
+                }
+            } catch(e) { showToast('Lỗi kết nối!','error'); }
+        }
+
+        function dongModalMuon() { document.getElementById('modalMuon').classList.remove('active'); }
+        function dongModalChiTiet() { document.getElementById('modalChiTiet').classList.remove('active'); }
+
+        // Init
+        loadPhieu();
+        loadDocGia();
+        loadSach();
+    </script>
+</body>
+</html>

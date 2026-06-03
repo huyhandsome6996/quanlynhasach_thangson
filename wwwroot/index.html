@@ -1,0 +1,169 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="Trang chủ - Hệ thống Quản lý Thư viện">
+    <title>Trang chủ - Quản lý Thư viện</title>
+    <link rel="icon" type="image/png" href="img/favicon.png">
+    <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+    <div class="app-layout">
+        <!-- ===== SIDEBAR ===== -->
+        <aside class="sidebar">
+            <div class="sidebar-header">
+                <img src="img/logo.png" alt="Logo">
+                <div>
+                    <h2>THƯ VIỆN</h2>
+                    <span>Hệ thống quản lý</span>
+                </div>
+            </div>
+
+            <nav class="sidebar-nav">
+                <div class="nav-section-title">Tổng quan</div>
+                <a href="index.html" class="nav-item active">
+                    <span class="icon">📊</span> Trang chủ
+                </a>
+
+                <div class="nav-section-title">Quản lý</div>
+                <a href="quanly_sach.html" class="nav-item">
+                    <span class="icon">📚</span> Quản lý Sách
+                </a>
+                <a href="quanly_theloai.html" class="nav-item">
+                    <span class="icon">🏷️</span> Quản lý Thể loại
+                </a>
+                <a href="quanly_docgia.html" class="nav-item">
+                    <span class="icon">👤</span> Quản lý Độc giả
+                </a>
+
+                <div class="nav-section-title">Nghiệp vụ</div>
+                <a href="quanly_muontra.html" class="nav-item">
+                    <span class="icon">🔄</span> Mượn / Trả sách
+                </a>
+            </nav>
+
+            <div class="sidebar-footer">
+                <a class="nav-item" onclick="dangXuat()" style="cursor:pointer;">
+                    <span class="icon">🚪</span> Đăng xuất
+                </a>
+            </div>
+        </aside>
+
+        <!-- ===== MAIN CONTENT ===== -->
+        <main class="main-content">
+            <div class="page-header">
+                <div>
+                    <h1>📊 Tổng quan Hệ thống</h1>
+                    <p>Chào mừng trở lại, <span id="lblTenNV">Quản trị viên</span>!</p>
+                </div>
+            </div>
+
+            <!-- Stats Grid -->
+            <div class="stats-grid">
+                <div class="stat-card">
+                    <div class="stat-icon blue">📚</div>
+                    <div class="stat-info">
+                        <h4>Tổng sách</h4>
+                        <div class="stat-value" id="statSach">0</div>
+                    </div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-icon teal">👤</div>
+                    <div class="stat-info">
+                        <h4>Độc giả</h4>
+                        <div class="stat-value" id="statDocGia">0</div>
+                    </div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-icon purple">📋</div>
+                    <div class="stat-info">
+                        <h4>Phiếu mượn</h4>
+                        <div class="stat-value" id="statPhieu">0</div>
+                    </div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-icon orange">🏷️</div>
+                    <div class="stat-info">
+                        <h4>Thể loại</h4>
+                        <div class="stat-value" id="statTheLoai">0</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Recent Borrows -->
+            <div class="card">
+                <div class="card-header">
+                    <h3>📋 Phiếu mượn gần đây</h3>
+                    <a href="quanly_muontra.html" class="btn btn-outline btn-sm">Xem tất cả →</a>
+                </div>
+                <div class="table-wrapper">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Mã phiếu</th>
+                                <th>Độc giả</th>
+                                <th>Ngày mượn</th>
+                                <th>Trạng thái</th>
+                            </tr>
+                        </thead>
+                        <tbody id="tbodyPhieuGanDay"></tbody>
+                    </table>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <script>
+        const API = 'http://localhost:5100/api';
+
+        // Kiểm tra đăng nhập
+        const user = JSON.parse(localStorage.getItem('user') || 'null');
+        if (!user) window.location.href = 'login.html';
+        else document.getElementById('lblTenNV').textContent = user.hoTen || 'Quản trị viên';
+
+        function dangXuat() {
+            localStorage.removeItem('user');
+            window.location.href = 'login.html';
+        }
+
+        // Load thống kê
+        async function loadStats() {
+            try {
+                const [sach, docgia, phieu, theloai] = await Promise.all([
+                    fetch(`${API}/sach`).then(r => r.json()),
+                    fetch(`${API}/docgia`).then(r => r.json()),
+                    fetch(`${API}/muontra`).then(r => r.json()),
+                    fetch(`${API}/theloai`).then(r => r.json())
+                ]);
+
+                document.getElementById('statSach').textContent = sach.length;
+                document.getElementById('statDocGia').textContent = docgia.length;
+                document.getElementById('statPhieu').textContent = phieu.length;
+                document.getElementById('statTheLoai').textContent = theloai.length;
+
+                // Hiển thị phiếu mượn gần đây (5 phiếu)
+                const tbody = document.getElementById('tbodyPhieuGanDay');
+                tbody.innerHTML = '';
+                phieu.slice(0, 5).forEach(p => {
+                    const badgeClass = p.trangThaiPhieu === 'Hoàn tất' ? 'badge-success' : 'badge-warning';
+                    tbody.innerHTML += `<tr>
+                        <td><strong>${p.maPhieu}</strong></td>
+                        <td>${p.tenDG}</td>
+                        <td>${p.ngayMuon}</td>
+                        <td><span class="badge ${badgeClass}">${p.trangThaiPhieu}</span></td>
+                    </tr>`;
+                });
+
+                if (phieu.length === 0) {
+                    tbody.innerHTML = '<tr><td colspan="4" style="text-align:center;color:var(--text-muted);padding:32px;">Chưa có phiếu mượn nào</td></tr>';
+                }
+            } catch (err) {
+                console.error('Lỗi load thống kê:', err);
+            }
+        }
+
+        loadStats();
+    </script>
+</body>
+</html>
